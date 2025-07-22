@@ -1,1 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simli Avatar Lead Capture</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .avatar-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .avatar-widget:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .avatar-widget.active {
+            width: 400px;
+            height: 500px;
+            border-radius: 20px;
+            bottom: 20px;
+            right: 20px;
+        }
+
+        .widget-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .avatar-container {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .avatar-container.active {
+            display: flex;
+        }
+
+        .avatar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+        }
+
+        .avatar-video {
+            width: 100%;
+            height: 250px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .text-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            backdrop-filter: blur(10px);
+        }
+
+        .text-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(45deg, #00ff88, #00ccff);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 136, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .status.success {
+            background: rgba(0, 255, 136, 0.2);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+        }
+
+        .status.error {
+            background: rgba(255, 0, 68, 0.2);
+            border: 1px solid rgba(255, 0, 68, 0.3);
+        }
+
+        .recording-indicator {
+            display: none;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255, 0, 0, 0.2);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 0, 0, 0.3);
+        }
+
+        .recording-dot {
+            width: 10px;
+            height: 10px;
+            background: #ff0044;
+            border-radius: 50%;
+            animation: pulse 1.5s ease-in-out infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { opacity: 1; }
+            to { opacity: 0.5; }
+        }
+
+        @media (max-width: 768px) {
+            .avatar-widget.active {
+                width: calc(100vw - 40px);
+                height: calc(100vh - 40px);
+                top: 20px;
+                left: 20px;
+                right: 20px;
+                bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="avatar-widget" id="avatarWidget">
+        <div class="widget-icon" id="widgetIcon">💬</div>
+        
+        <div class="avatar-container" id="avatarContainer">
+            <div class="avatar-header">
+                <h3>Book an Appointment</h3>
+                <button class="close-btn" id="closeBtn">×</button>
+            </div>
+            
+            <div class="avatar-video" id="avatarVideo">
+                <div>Avatar will appear here</div>
+            </div>
+            
+            <div class="controls">
+                <div class="recording-indicator" id="recordingIndicator">
+                    <div class="recording-dot"></div>
+                    <span>Listening...</span>
+                </div>
+                
+                <div class="input-group">
+                    <input type="text" class="text-input" id="messageInput" placeholder="Type your message...">
+                    <button class="btn" id="sendBtn">Send</button>
+                </div>
+                
+                <button class="btn" id="voiceBtn">🎤 Start Voice</button>
+                <button class="btn" id="initBtn">Initialize Avatar</button>
+                
+                <div class="status" id="status">Click "Initialize Avatar" to start</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class SimliLeadCapture {
+            constructor() {
+                this.apiKey = '6hrqygbim1ksmhzemsaoi';
+                this.faceId = '6ebf0aa7-6fed-443d-a4c6-fd1e3080b215';
+                this.webhookUrl = 'https://fifthaveai.app.n8n.cloud/webhook/aa59cf5a-8e20-467f-b8a1-c5c0eed8d02f';
+                this.sessionId = null;
+                this.isRecording = false;
+                this.recognition = null;
+                this.conversation = [];
+                
+                this.initializeElements();
+                this.bindEvents();
+                this.setupSpeechRecognition();
+            }
+
+            initializeElements() {
+                this.widget = document.getElementById('avatarWidget');
+                this.container = document.getElementById('avatarContainer');
+                this.icon = document.getElementById('widgetIcon');
+                this.closeBtn = document.getElementById('closeBtn');
+                this.initBtn = document.getElementById('initBtn');
+                this.sendBtn = document.getElementById('sendBtn');
+                this.voiceBtn = document.getElementById('voiceBtn');
+                this.messageInput = document.getElementById('messageInput');
+                this.status = document.getElementById('status');
+                this.recordingIndicator = document.getElementById('recordingIndicator');
+                this.avatarVideo = document.getElementById('avatarVideo');
+            }
+
+            bindEvents() {
+                this.widget.addEventListener('click', (e) => {
+                    if (e.target === this.widget || e.target === this.icon) {
+                        this.openWidget();
+                    }
+                });
+
+                this.closeBtn.addEventListener('click', () => this.closeWidget());
+                this.initBtn.addEventListener('click', () => this.initializeAvatar());
+                this.sendBtn.addEventListener('click', () => this.sendMessage());
+                this.voiceBtn.addEventListener('click', () => this.toggleVoice());
+                
+                this.messageInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.sendMessage();
+                });
+            }
+
+            setupSpeechRecognition() {
+                if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    this.recognition = new SpeechRecognition();
+                    this.recognition.continuous = false;
+                    this.recognition.interimResults = false;
+                    this.recognition.lang = 'en-US';
+
+                    this.recognition.onresult = (event) => {
+                        const transcript = event.results[0][0].transcript;
+                        this.messageInput.value = transcript;
+                        this.sendMessage();
+                    };
+
+                    this.recognition.onend = () => {
+                        this.isRecording = false;
+                        this.updateVoiceButton();
+                        this.recordingIndicator.style.display = 'none';
+                    };
+
+                    this.recognition.onerror = (event) => {
+                        this.updateStatus('Speech recognition error: ' + event.error, 'error');
+                        this.isRecording = false;
+                        this.updateVoiceButton();
+                        this.recordingIndicator.style.display = 'none';
+                    };
+                }
+            }
+
+            openWidget() {
+                this.widget.classList.add('active');
+                this.container.classList.add('active');
+                this.icon.style.display = 'none';
+            }
+
+            closeWidget() {
+                this.widget.classList.remove('active');
+                this.container.classList.remove('active');
+                this.icon.style.display = 'flex';
+            }
+
+            async initializeAvatar() {
+                try {
+                    this.updateStatus('Initializing avatar...', '');
+                    this.initBtn.disabled = true;
+
+                    // Step 1: Create E2E Session with Custom LLM (N8N Webhook)
+                    const sessionResponse = await fetch('https://api.simli.ai/startE2ESession', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-API-Key': this.apiKey
+                        },
+                        body: JSON.stringify({
+                            faceId: this.faceId,
+                            isJPG: false,
+                            apiKey: this.apiKey,
+                            customLLMConfig: {
+                                baseURL: this.webhookUrl,
+                                model: "lead-capture-agent",
+                                llmAPIKey: "n8n-webhook-key"
+                            },
+                            ttsConfig: {
+                                provider: "PlayHT"
+                            },
+                            createTranscript: true
+                        })
+                    });
+
+                    if (!sessionResponse.ok) {
+                        throw new Error(`Session creation failed: ${sessionResponse.status}`);
+                    }
+
+                    const sessionData = await sessionResponse.json();
+                    this.sessionId = sessionData.sessionId;
+
+                    this.updateStatus('Avatar ready! You can start talking.', 'success');
+                    this.sendBtn.disabled = false;
+                    this.voiceBtn.disabled = false;
+                    
+                    // Send welcome message to N8N to start conversation
+                    await this.sendToN8N("Avatar session started. Please greet the user and ask how you can help them book an appointment.");
+
+                } catch (error) {
+                    console.error('Initialization error:', error);
+                    this.updateStatus('Initialization error: ' + error.message, 'error');
+                    this.initBtn.disabled = false;
+                }
+            }
+
+            async sendMessage() {
+                const message = this.messageInput.value.trim();
+                if (!message || !this.sessionId) return;
+
+                try {
+                    this.updateStatus('Processing message...', '');
+                    this.sendBtn.disabled = true;
+                    
+                    // Add to conversation history
+                    this.conversation.push({
+                        role: 'user',
+                        content: message,
+                        timestamp: new Date().toISOString()
+                    });
+
+                    // Send to N8N for processing
+                    await this.sendToN8N(message);
+                    
+                    this.messageInput.value = '';
+                    this.updateStatus('Message sent! Avatar is responding...', 'success');
+
+                } catch (error) {
+                    console.error('Send message error:', error);
+                    this.updateStatus('Error sending message: ' + error.message, 'error');
+                } finally {
+                    this.sendBtn.disabled = false;
+                }
+            }
+
+            async sendToN8N(message) {
+                try {
+                    const response = await fetch(this.webhookUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            messages: [
+                                {
+                                    role: "system",
+                                    content: "You are a lead capture assistant. Your goal is to collect the visitor's name, email, phone number, and schedule an appointment. Be friendly and conversational. When you have collected the required information, help them book an appointment."
+                                },
+                                ...this.conversation,
+                                {
+                                    role: "user",
+                                    content: message
+                                }
+                            ],
+                            sessionId: this.sessionId,
+                            timestamp: new Date().toISOString(),
+                            source: "simli-avatar"
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`N8N webhook failed: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    
+                    // Add assistant response to conversation
+                    if (result.choices && result.choices[0] && result.choices[0].message) {
+                        this.conversation.push({
+                            role: 'assistant',
+                            content: result.choices[0].message.content,
+                            timestamp: new Date().toISOString()
+                        });
+                        
+                        // Send response to Simli for avatar to speak
+                        await this.sendToSimli(result.choices[0].message.content);
+                    }
+
+                } catch (error) {
+                    console.error('N8N webhook error:', error);
+                    throw error;
+                }
+            }
+
+            async sendToSimli(response) {
+                try {
+                    // Send the response to Simli to make the avatar speak
+                    const simliResponse = await fetch('https://api.simli.ai/sendMessage', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-API-Key': this.apiKey
+                        },
+                        body: JSON.stringify({
+                            sessionId: this.sessionId,
+                            message: response
+                        })
+                    });
+
+                    if (!simliResponse.ok) {
+                        console.warn('Simli message send failed:', simliResponse.status);
+                    }
+
+                } catch (error) {
+                    console.error('Simli send error:', error);
+                }
+            }
+
+            toggleVoice() {
+                if (!this.recognition) {
+                    this.updateStatus('Speech recognition not supported', 'error');
+                    return;
+                }
+
+                if (this.isRecording) {
+                    this.recognition.stop();
+                } else {
+                    this.recognition.start();
+                    this.isRecording = true;
+                    this.recordingIndicator.style.display = 'flex';
+                }
+                
+                this.updateVoiceButton();
+            }
+
+            updateVoiceButton() {
+                this.voiceBtn.textContent = this.isRecording ? '🛑 Stop' : '🎤 Start Voice';
+            }
+
+            updateStatus(message, type = '') {
+                this.status.textContent = message;
+                this.status.className = `status ${type}`;
+            }
+        }
+
+        // Initialize the widget when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new SimliLeadCapture();
+        });
+    </script>
+</body>
+</html>
